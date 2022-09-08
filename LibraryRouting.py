@@ -1,5 +1,9 @@
 import pyproj
+import pandas as pd
 from ortools.constraint_solver import pywrapcp
+
+url = 'https://www.city.kawasaki.jp/170/cmsfiles/contents/0000116/116229/141305_public_facility_library.csv'
+df = pd.read_csv(url, encoding='cp932')
 
 # index managerを作成
 manager = pywrapcp.RoutingIndexManager(len(df), 2, 0)
