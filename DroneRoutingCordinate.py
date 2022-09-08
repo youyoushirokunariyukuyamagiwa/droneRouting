@@ -84,7 +84,7 @@ def energy_callback(from_index, to_index,payload,drone_type):
 
     return distance*energy_consumption
 
-energy_callback_index = routing.RegisterUnaryTransitCallback(energy_callback)
+energy_callback_index = routing.RegisterTransitCallback(energy_callback)
 
 # 積載量の制約
 routing.AddDimensionWithVehicleCapacity(
