@@ -79,7 +79,7 @@ def create_data_model():
     ]
     data['demands'] = [0, 1, 1, 2, 4, 2, 4, 8, 8, 1, 2, 1, 2, 4, 4, 8, 8]
     data['vehicle_capacities'] = [100, 100, 100, 100]
-    data['energy_capacity'] = [50,50,50,50]
+    data['energy_capacity'] = [3000,3000,50,5]
     data['num_vehicles'] = 4
     data['depot'] = 0
     return data
@@ -130,48 +130,6 @@ def main():
     # １＝VTOL機、２＝マルチコプター
     drone_type = 1
 
-    # Create and register a transit callback.
-    def distance_callback(from_index, to_index):
-        """Returns the distance between the two nodes."""
-        # Convert from routing variable Index to distance matrix NodeIndex.
-        from_node = manager.IndexToNode(from_index)
-        to_node = manager.IndexToNode(to_index)
-        return data['distance_matrix'][from_node][to_node]
-
-    transit_callback_index = routing.RegisterTransitCallback(distance_callback)
-
-    # Define cost of each arc.
-    routing.SetArcCostEvaluatorOfAllVehicles(transit_callback_index)
-
-    
-    # エネルギー消費量callback
-    def energy_callback(from_index,to_index):
-        """Returns the energy consumption between two nodes."""
-        #distance = distance_callback(from_index,to_index)
-        #energy_consumption_f
-        # energy_consumption_h
-        # payload = 10
-
-        # if drone_type == 1:
-        #     energy_consumption_f = payload*0.2 + 3
-        #     energy_consumption_h = payload*1.5 + 20
-        # else:
-        #     energy_consumption_f = payload*1.0 + 10
-        #     energy_consumption_h = payload*1.0 + 10
-
-        # return distance*energy_consumption_f + energy_consumption_h
-        return 10
-        
-    energy_callback_index = routing.RegisterTransitCallback(energy_callback)
-
-    # エネルギー容量の制約
-    routing.AddDimensionWithVehicleCapacity(
-        energy_callback_index,
-        0,  # null capacity slack
-        data['energy_capacity'],  # energy maximum capacities
-        True,  # start cumulative to zero
-        'Energy')
-
 
     # Add Capacity constraint.
     def demand_callback(from_index):
@@ -188,6 +146,56 @@ def main():
         data['vehicle_capacities'],  # vehicle maximum capacities
         True,  # start cumul to zero
         'Capacity')
+    
+    capacity_dimension = routing.GetDimensionOrDie('Capacity')
+
+    # Create and register a transit callback.
+    def distance_callback(from_index, to_index):
+        """Returns the distance between the two nodes."""
+        # Convert from routing variable Index to distance matrix NodeIndex.
+        from_node = manager.IndexToNode(from_index)
+        to_node = manager.IndexToNode(to_index)
+        return data['distance_matrix'][from_node][to_node]
+
+    transit_callback_index = routing.RegisterTransitCallback(distance_callback)
+
+    # Define cost of each arc.
+    routing.SetArcCostEvaluatorOfAllVehicles(transit_callback_index)
+
+    # エネルギー消費量callback
+    def energy_callback(from_index,to_index):
+        """Returns the energy consumption between two nodes."""
+        distance = distance_callback(from_index,to_index)
+        # final_index = to_index
+        # while not routing.IsEnd(final_index):
+        #     final_index = solution.Value(routing.NextVar(final_index))
+        
+        # payload = capacity_dimension.CumulVar(final_index) - capacity_dimension.CumulVar(from_index)
+        #energy_consumption_f
+        # energy_consumption_h
+        # payload = 10
+
+        # if drone_type == 1:
+        #     energy_consumption_f = payload*0.2 + 3
+        #     energy_consumption_h = payload*1.5 + 20
+        # else:
+        #     energy_consumption_f = payload*1.0 + 10
+        #     energy_consumption_h = payload*1.0 + 10
+
+        # return distance*energy_consumption_f + energy_consumption_h
+        return distance
+        
+    energy_callback_index = routing.RegisterTransitCallback(energy_callback)
+
+    # エネルギー容量の制約
+    routing.AddDimensionWithVehicleCapacity(
+        energy_callback_index,
+        0,  # null capacity slack
+        data['energy_capacity'],  # energy maximum capacities
+        True,  # start cumulative to zero
+        'Energy')
+
+
 
     # Setting first solution heuristic.
     search_parameters = pywrapcp.DefaultRoutingSearchParameters()
